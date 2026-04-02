@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Calculate SGPA – GradeSphere{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto animate-slide-up">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold mb-2">SGPA Calculator</h1>
+            <p class="text-gray-500 dark:text-gray-400">Calculate grade point average for a single semester.</p>
+        </div>
+
+        <!-- Grading System Selector -->
+        <div
+            class="glass-card px-4 py-2 rounded-xl flex items-center gap-3 border border-gray-200 dark:border-gray-700 shadow-sm relative pr-10">
+            <label for="system-select"
+                class="text-sm font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">System:</label>
+            <select id="system-select"
+                class="bg-transparent text-sm font-medium text-gray-800 dark:text-gray-100 outline-none cursor-pointer appearance-none relative w-full focus:ring-0">
+                <option value="indian">Indian Letter (10 Pt)</option>
+                <option value="alternate">Alternate Letter System</option>
+                <option value="10pt">10 Point Numeric</option>
+                <option value="4pt">4 Point GPA</option>
+                <option value="custom">Custom System</option>
+            </select>
+            <i class="fa-solid fa-chevron-down text-xs text-gray-400 absolute right-4 pointer-events-none"></i>
+            <button id="btn-settings"
+                class="hidden absolute right-[-40px] text-gray-400 hover:text-primary transition-colors focus:outline-none"
+                title="Configure Custom System">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8">
+        <!-- Input Section -->
+        <div class="md:col-span-2 glass-card rounded-2xl p-6 shadow-lg relative" id="pdf-content-area">
+
+            <div class="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
+                <h2 class="text-xl font-semibold">Subjects</h2>
+                <button id="btn-reset"
+                    class="text-sm text-red-500 hover:text-red-600 px-3 py-1 rounded transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 hide-on-pdf">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                </button>
+            </div>
+
+            <!-- List of Subjects -->
+            <div id="subjects-container" class="space-y-4 mb-6">
+                <!-- Template row will be injected here by JS -->
+            </div>
+
+            <button id="btn-add-subject"
+                class="w-full py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-500 dark:text-gray-400 hover:border-primary hover:text-primary dark:hover:border-primary dark:hover:text-primary transition-colors font-medium flex items-center justify-center gap-2 hide-on-pdf">
+                <i class="fa-solid fa-plus"></i> Add Subject
+            </button>
+
+            <button id="btn-calculate"
+                class="mt-6 w-full py-3 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all text-lg flex items-center justify-center gap-2 relative overflow-hidden hide-on-pdf">
+                <span id="calc-text">Calculate SGPA</span>
+                <i id="calc-spinner" class="fa-solid fa-circle-notch fa-spin hidden"></i>
+            </button>
+        </div>
+
+        <!-- Result Section -->
+        <div class="md:col-span-1 flex flex-col gap-6">
+            <div id="result-card"
+                class="glass-card rounded-2xl p-6 shadow-lg text-center flex flex-col items-center justify-center transition-all duration-500 opacity-50 border-2 border-transparent relative">
+                <h3 class="text-gray-500 dark:text-gray-400 font-medium mb-2 uppercase tracking-wide text-sm">Your SGPA
+                </h3>
+                <div
+                    class="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600 mb-2 drop-shadow-sm min-h-[4.5rem] flex items-center">
+                    <span id="sgpa-result">--</span>
+                </div>
+                <p id="performance-rating" class="font-semibold text-lg mb-2 hidden"></p>
+                <p id="result-message"
+                    class="text-sm text-gray-500 dark:text-gray-400 mt-2 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full hidden">
+                </p>
+
+                <button id="btn-export-pdf"
+                    class="hidden mt-4 w-full py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-medium flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-red-500"></i> Download Result as PDF
+                </button>
+            </div>
+
+            <!-- Grade Info Trigger -->
+            <button id="btn-how-calculated"
+                class="glass-card rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow text-left flex items-center gap-3 w-full border border-gray-200 dark:border-gray-700">
+                <div
+                    class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-question text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-gray-200">How SGPA is Calculated</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">View formulas & grade tables</p>
+                </div>
+                <i class="fa-solid fa-chevron-right ml-auto text-gray-400 text-xs"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Grade Reference Modal Overlay -->
+<div id="info-modal"
+    class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
+        <div
+            class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+            <h3 class="font-semibold text-lg flex items-center gap-2"><i
+                    class="fa-solid fa-calculator text-primary"></i> How SGPA is Calculated</h3>
+            <button id="btn-close-info"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors focus:outline-none">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-grow max-h-[60vh]">
+            <div
+                class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm mb-6 border border-blue-100 dark:border-blue-800/50">
+                <p class="font-mono text-center font-medium">SGPA = &Sigma; (Credit &times; Grade Point) / &Sigma;
+                    Credits</p>
+            </div>
+
+            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Example Calculation</h4>
+            <div
+                class="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 text-sm font-mono text-gray-600 dark:text-gray-400 mb-6 space-y-2 border border-gray-100 dark:border-gray-800">
+                <p>Subject A: 4 credits &times; Grade A+ (10) = <span
+                        class="text-gray-900 dark:text-gray-100 font-bold">40</span></p>
+                <p>Subject B: 3 credits &times; Grade A (9) = <span
+                        class="text-gray-900 dark:text-gray-100 font-bold">27</span></p>
+                <p>Subject C: 6 credits &times; Grade C (5) = <span
+                        class="text-gray-900 dark:text-gray-100 font-bold">30</span></p>
+                <div class="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
+                    <p>Total Credits = 13</p>
+                    <p>Total Points = 97</p>
+                    <p class="text-primary mt-1 font-bold">SGPA = 97 / 13 = 7.46</p>
+                </div>
+            </div>
+
+            <div id="modal-grade-info-container">
+                <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-3" id="modal-table-title">Current System
+                    Grade Mapping</h4>
+                <div class="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800/50">
+                            <tr>
+                                <th scope="col" class="px-4 py-2 font-medium">Grade</th>
+                                <th scope="col" class="px-4 py-2 font-medium text-right">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-grade-table-body" class="divide-y divide-gray-100 dark:divide-gray-800">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="modal-numeric-info-container" class="hidden text-center py-6 text-gray-500 dark:text-gray-400">
+                <i class="fa-solid fa-arrow-up-9-1 text-3xl mb-3 opacity-50"></i>
+                <p>This system utilizes numerical values (0 to 10) directly.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal Overlay for Custom Scale -->
+<div id="settings-modal"
+    class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4">
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
+        <div
+            class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+            <h3 class="font-semibold text-lg flex items-center gap-2"><i class="fa-solid fa-sliders text-primary"></i>
+                Custom Grading Scale</h3>
+            <button id="btn-close-settings"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors focus:outline-none">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-grow max-h-[50vh]">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Define your own grade letters and their
+                corresponding numeric points.</p>
+
+            <div id="grading-scale-container" class="space-y-3">
+                <!-- Dynamically injected grades from jinja/js -->
+            </div>
+
+            <button id="btn-add-grade"
+                class="mt-4 text-primary text-sm font-medium hover:underline flex items-center focus:outline-none">
+                <i class="fa-solid fa-plus mr-1"></i> Add Grade Rule
+            </button>
+        </div>
+
+        <div
+            class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
+            <button id="btn-save-scale"
+                class="px-6 py-2 bg-primary hover:bg-indigo-600 text-white rounded-lg shadow font-medium transition-colors focus:outline-none flex items-center justify-center gap-2">
+                Apply Scale
+            </button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
